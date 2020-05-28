@@ -74,10 +74,13 @@ class Game(CardDeck):
         self._fuses = 0
         self.score = 0
         self.current_max = self.max_score(variation=variation)
+        self.log = []
+
         if len(players) < 4:
             self.hand_size = 5
         else:
             self.hand_size = 4
+
         self.players = []
         for player in players:
             self.players.append(Player(player, self.deck[:self.hand_size]))
@@ -170,11 +173,14 @@ class Game(CardDeck):
         elif choice == 'play':
             self.play(player, value)
             if (self.score == self.current_max) or (self.fuses == 3):
-                return self.score
+                return_val = self.score
         elif choice == 'discard':
             self.discard(player, value)
             if self.deck == []:
-                return self.score
+                return_val = self.score
         else:
             raise ValueError('Must give a hint, play a card, or discard.')
-        return self.get_next_player(player)
+        self.log.append((player, choice, value, hint_player))
+        if not return_val:
+            return self.get_next_player(player)
+        return return_val
