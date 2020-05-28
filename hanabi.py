@@ -28,6 +28,8 @@ class CardDeck(object):
         else:
             self._variation = value
             self.colors, self.numbers = self.variations[value]
+            self.deck = self.full_deck(variation=variation)
+            shuffle(self.deck)
 
     @classmethod
     def full_deck(cls, variation='classic'):
