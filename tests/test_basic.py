@@ -30,6 +30,16 @@ class TestDeck(unittest.TestCase):
             msg = f'Number: {numbers[i]}'
             self.assertEqual(each_number[i], matches, msg)
 
+    def test_variation(self):
+        deck = hanabi.CardDeck(variation='classic')
+        with self.assertRaises(KeyError):
+            deck.variation = 'test_KeyError'
+
+        game = hanabi.Game()
+        self.assertEqual(game.variation, 'classic')
+        with self.assertRaises(AttributeError):
+            game.variation = 'test_AttributeError'
+
 
 class TestPlayer(unittest.TestCase):
 
@@ -174,4 +184,3 @@ class TestGame(unittest.TestCase):
         self.assertEqual(game.current_max, 23, 'unplayable 3')
         self.assertEqual(game.tokens, 5, 'unplayable 3')
         self.assertEqual(game.fuses, 2, 'unplayable 3')
-        

@@ -23,11 +23,11 @@ class CardDeck(object):
 
     @variation.setter
     def variation(self, value):
-        if len(self.deck) < self.full_deck():
+        if len(self.deck) < len(self.full_deck()):
             raise AttributeError('Cannot change variation after game has started.')
         else:
-            self._variation = value
             self.colors, self.numbers = self.variations[value]
+            self._variation = value
             self.deck = self.full_deck(variation=variation)
             shuffle(self.deck)
 
