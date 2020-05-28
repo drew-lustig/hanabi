@@ -102,9 +102,7 @@ class Game(CardDeck):
 
     @fuses.setter
     def fuses(self, value):
-        if value > 2:
-            raise ValueError('Game Over! Bomb went off.')
-        elif value < 0:
+        if value < 0:
             raise ValueError('Cannot have negative fuses.')
         else:
             self._fuses = value
@@ -122,6 +120,12 @@ class Game(CardDeck):
     def remove_hint(self, player, index):
         player.possibilities.pop(index)
         player.possibilities.append(self.single_possibilities(variation=self.variation))
+
+    def get_next_player(self, current_player):
+        if current_player == self.players[-1]:
+            return self.players[0]
+        else:
+            return self.players[self.players.index(current_player) + 1]
 
     def hint(self, player, hint):
         self.tokens += -1
@@ -165,8 +169,12 @@ class Game(CardDeck):
                 self.hint(hint_player, value)
         elif choice == 'play':
             self.play(player, value)
+            if (self.score == self.current_max) or (self.fuses == 3):
+                return self.score
         elif choice == 'discard':
             self.discard(player, value)
+            if self.deck == []:
+                return self.score
         else:
             raise ValueError('Must give a hint, play a card, or discard.')
-        return True
+        return self.get_next_player(player)
