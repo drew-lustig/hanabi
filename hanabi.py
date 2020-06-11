@@ -64,6 +64,9 @@ class Player(object):
         self.hand = hand
         self.possibilities = CardDeck.all_possibilities(len(hand))
 
+    def __repr__(self):
+        return self.name
+
 
 class Game(CardDeck):
 
@@ -74,14 +77,44 @@ class Game(CardDeck):
         self._fuses = 0
         self.score = 0
         self.current_max = self.max_score(variation=variation)
+        self.log = []
+
         if len(players) < 4:
             self.hand_size = 5
         else:
             self.hand_size = 4
+
         self.players = []
         for player in players:
             self.players.append(Player(player, self.deck[:self.hand_size]))
             self.deck = self.deck[self.hand_size:]
+        self.current_player = self.players[0]
+
+    def __repr__(self):
+        hints = '\n'.join([
+            f'{i}: {poss[0]}, {poss[1]}'
+            for i, poss in enumerate(self.current_player.possibilities)
+        ])
+
+        hands = '\n'.join([
+            f'{player.name} hand: {player.hand}'
+            for player in self.players if player != self.current_player
+        ])
+
+        return (
+            '-------------------------------------\n'
+            f'Played Cards: {self.played}\n'
+            f'Discarded Cards: {self.discarded}\n'
+            f'Cards Left: {len(self.deck)}\n'
+            f'Tokens: {self.tokens}\n'
+            f'Fuses: {self.fuses}\n'
+            f'Score: {self.score}/{self.current_max}\n'
+            '-------------------------------------\n'
+            f'Current Player: {self.current_player}\n'
+            f'Hints:\n{hints}\n'
+            '-------------------------------------\n'
+            f'{hands}'
+        )
 
     @property
     def tokens(self):
@@ -102,9 +135,7 @@ class Game(CardDeck):
 
     @fuses.setter
     def fuses(self, value):
-        if value > 2:
-            raise ValueError('Game Over! Bomb went off.')
-        elif value < 0:
+        if value < 0:
             raise ValueError('Cannot have negative fuses.')
         else:
             self._fuses = value
@@ -113,6 +144,8 @@ class Game(CardDeck):
         self.score = sum(self.played.values(), 0)
 
     def update_max(self, color, number):
+        """Decrease the maximum possible score for this game"""
+
         quantity = self.numbers[number]
         max_number = max(self.numbers.keys())
         if self.discarded[color].count(number) == quantity:
@@ -120,10 +153,20 @@ class Game(CardDeck):
             self.current_max += deduction
 
     def remove_hint(self, player, index):
+        """Update the player's hints to match new hand"""
+
         player.possibilities.pop(index)
         player.possibilities.append(self.single_possibilities(variation=self.variation))
 
+    def get_next_player(self, current_player):
+        if current_player == self.players[-1]:
+            return self.players[0]
+        else:
+            return self.players[self.players.index(current_player) + 1]
+
     def hint(self, player, hint):
+        """Provide player with a color or number hint"""
+
         self.tokens += -1
         if type(hint) == str:
             index = 0
@@ -137,8 +180,10 @@ class Game(CardDeck):
             else:
                 player.possibilities[i][index] = player.possibilities[i][index] - set_hint
 
-    def play(self, player, index):
-        color, number = player.hand.pop(index)
+    def play(self, player, card_index):
+        """Attempt to place the next card in a set"""
+
+        color, number = player.hand.pop(card_index)
         if number - self.played[color] == 1:
             self.played[color] += 1
             if number == 5 and self.tokens < 8:
@@ -149,15 +194,23 @@ class Game(CardDeck):
             self.fuses += 1
             self.update_max(color, number)
         player.hand.append(self.deck.pop())
-        self.remove_hint(player, index)
+        self.remove_hint(player, card_index)
 
-    def discard(self, player, index):
+    def discard(self, player, card_index):
+        """Remove a card from a player's hand"""
+
         self.tokens += 1
-        color, number = player.hand.pop(index)
+        color, number = player.hand.pop(card_index)
         self.discarded[color].append(number)
-        self.remove_hint(player, index)
+        player.hand.append(self.deck.pop())
+        self.remove_hint(player, card_index)
 
     def turn(self, player, choice, value, hint_player=None):
+        return_val = None
+        if player != self.current_player:
+            msg = (f'{player.name} cannot play out of turn. '
+                   f"It is {self.current_player.name}'s turn")
+            raise ValueError(msg)
         if choice == 'hint':
             if player == hint_player:
                 raise ValueError('Cannot give yourself a hint! :)')
@@ -165,8 +218,16 @@ class Game(CardDeck):
                 self.hint(hint_player, value)
         elif choice == 'play':
             self.play(player, value)
+            if (self.score == self.current_max) or (self.fuses == 3):
+                return_val = self.score
         elif choice == 'discard':
             self.discard(player, value)
+            if self.deck == []:
+                return_val = self.score
         else:
             raise ValueError('Must give a hint, play a card, or discard.')
-        return True
+        self.log.append((player, choice, value, hint_player))
+        if not return_val:
+            self.current_player = self.get_next_player(player)
+            return self.current_player
+        return return_val

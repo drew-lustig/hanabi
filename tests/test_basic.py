@@ -72,6 +72,7 @@ class TestGame(unittest.TestCase):
         for player in game.players:
             self.assertEqual(hand_size, len(player.hand), msg='hand size')
         self.assertEqual(len(game.deck), len(game.full_deck())-15)
+        self.assertEqual(game.current_player, game.players[0])
 
     def test_hint(self):
         game = hanabi.Game()
@@ -131,6 +132,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(game.tokens, 8)
         self.assertEqual(player.possibilities[-1],
                          game.single_possibilities(variation=game.variation))
+        self.assertEqual(len(player.hand), 5)
 
     def test_play(self):
         game = hanabi.Game()
@@ -148,7 +150,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(game.tokens, 8, 'playable')
         self.assertEqual(game.fuses, 0, 'playable')
 
-        discarded = {'r': [], 'g': [], 'w': [4], 'b': [], 'y': []}
+        discarded['w'].append(4)
         game.play(player, 0)
         self.assertEqual(game.played, played, 'unplayable 1')
         self.assertEqual(game.discarded, discarded, 'unplayable 1')
@@ -156,7 +158,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(game.tokens, 8, 'unplayable 1')
         self.assertEqual(game.fuses, 1, 'unplayable 1')
 
-        discarded = {'r': [], 'g': [], 'w': [4, 4], 'b': [], 'y': []}
+        discarded['w'].append(4)
         game.play(player, 0)
         self.assertEqual(game.played, played, 'unplayable 2')
         self.assertEqual(game.discarded, discarded, 'unplayable 2')
@@ -174,13 +176,17 @@ class TestGame(unittest.TestCase):
         self.assertEqual(game.tokens, 5, 'playable 5')
         self.assertEqual(game.fuses, 2, 'playable 5')
 
-        discarded['y'] = [3]
-        score = 1
-        with self.assertRaises(ValueError):
-            game.play(player, 0)
+        discarded['y'].append(3)
+        game.play(player, 0)
         self.assertEqual(game.played, played, 'unplayable 3')
         self.assertEqual(game.discarded, discarded, 'unplayable 3')
         self.assertEqual(game.score, 6, 'unplayable 3')
         self.assertEqual(game.current_max, 23, 'unplayable 3')
         self.assertEqual(game.tokens, 5, 'unplayable 3')
         self.assertEqual(game.fuses, 2, 'unplayable 3')
+
+        def test_turn(self):
+            game = hanabi.Game()
+            player = game.players[0]
+            # TODO
+
